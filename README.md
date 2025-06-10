@@ -41,7 +41,8 @@ Bob is the author of the famous [Learning SPARQL](https://www.learningsparql.com
   - This is slightly older than the Virtuoso endpoint as it uses the ERA KG mentioned next; 
     but it has a chatbot.
 - [ERA KG on Zenodo](https://zenodo.org/records/14605744) (Jan 6, 2025)
-- [RINF data stories](https://data-interop.era.europa.eu/data-stories) (competency questions, see [source](https://github.com/Interoperable-data/ERA_vocabulary/tree/main/queries)): you can select and execute them directly
+- [RINF data stories](https://data-interop.era.europa.eu/data-stories) (competency questions, see [source](https://github.com/Interoperable-data/ERA_vocabulary/tree/main/queries)): 
+  you can select and execute them directly in Virtuoso, or copy from source and execute in GraphDB
 - [Current ontology 3.0.1](https://data-interop.era.europa.eu/era-vocabulary/v3-20240618/) of 2024-06-18 (see [source](https://github.com/Interoperable-data/ERA_vocabulary)):
   - [Ontology diagram](https://data-interop.era.europa.eu/era-vocabulary/v3-20240618/#desc), reproduced below
   - [SKOS thesauri](https://data-interop.era.europa.eu/era-vocabulary/v3-20240618/skos/index.html) (enumeration values)
@@ -452,7 +453,167 @@ e.g. `AFI, ANT, ATN, BUR` etc are obsolete.
 ### SKOS Vocabularies
 TODO
 
+## Complex Queries
+
+In this section we investigate some more complex topics
+
+### Canonical URIs
+
+This concept is a bit hard to undertstand, but fundamental for understanding ERA KG data organization:
+
+> The canonical URI is defined for each instance of an Infrastructure element, e.g. section of line, operational point, track, tunnel, siding.
+> Objects of the infrastructure generated through RML mappings include (when provided) their validity start and end dates. With its identifier, plus all identifiers of its "parent" elements, and its validity dates, a hash URI is generated.
+> The canonical URI is the element's URI with its identifiers and without the validity dates. All of the hash URIs of an element point to its canonical URI.
+
+This means that
+- A rail element is represented by a different resource whenever some of its attributes change,
+and distinct `era:validityStartDate, era:validityEndDate` are recorded.
+- A hash is computed from all variable elements, and they are recorded in field `era:hashSource`
+- All these "sibling" resources share the same `era:canonicalURI`, 
+  which in a sense is the "true identifier" of the resource
+
+Let's find the canonical URI with most representatives, i.e. the element with most variant resources:
+```sparql
+select ?uri (count(*) as ?c) {
+    ?x :canonicalURI ?uri
+} group by ?uri order by desc(?c) limit 3
+```
+
+http://data.europa.eu/949/functionalInfrastructure/tunnels/S-Bahn-Tunnel%20Frankfurt%20City_%2B8.66282650.107369_%2B8.68875950.100673
+has 50 variants.
+
+Now let's examine all properties of these resources, and count the unique values:
+```sparql
+select ?p (count(distinct ?o) as ?c) {
+  ?x :canonicalURI <http://data.europa.eu/949/functionalInfrastructure/tunnels/S-Bahn-Tunnel%20Frankfurt%20City_%2B8.66282650.107369_%2B8.68875950.100673>.
+  ?x ?p ?o
+} group by ?p order by ?p
+```
+| p                         |  c |
+|---------------------------|----|
+| :canonicalURI             |  1 |
+| :endLocation              |  1 |
+| :hashSource               | 50 |
+| :imCode                   |  1 |
+| :inCountry                |  1 |
+| :length                   |  1 |
+| :lengthOfTunnel           |  1 |
+| :lineReferenceTunnelEnd   |  8 |
+| :lineReferenceTunnelStart |  8 |
+| :netElement               | 25 |
+| :notYetAvailable          |  4 |
+| :rollingStockFireCategory |  2 |
+| :startLocation            |  1 |
+| :tunnelIdentification     |  1 |
+| :validityEndDate          |  2 |
+| :validityStartDate        |  2 |
+| rdf:type                  |  1 |
+| rdfs:label                |  1 |
+
+The most important props (`type, label, start/endLocation, tunnelIdentification, inCountry`) are constant.
+What changes are the finer details. In particular:
+- `:lineReferenceTunnelStart, :lineReferenceTunnelEnd` 
+  vary between 8 values incorporating "single-track, directional track, opposite track" and more
+- `:validityStartDate, :validityEndDate` vary between 2024, 2025, 2026 (whole years)
+- The hash always varies. One hash of that tunnel is below.
+  As you see, it includes dates, line references, and geographic coordinates
+
+`3610_DE00FFT_DE000FF/2024-01-01_2024-12-31/directional track/S-Bahn-Tunnel Frankfurt City_+8.66282650.107369_+8.68875950.100673/2024-01-01_2024-12-31`
+
+### Data Duplication
+
+What is `era:Tunnel` (or `:Tunnel`)? 
+Despite the definition, it's not a real railway element, but a version thereof.
+(Read the previous section to see why).
+
+You should take this into account when doing aggregations.
+E.g. let's try to find the tunnels of Switzerland, ordered by length:
+```sparql
+select * {
+  [] a :Tunnel;
+      :inCountry/skos:prefLabel "Switzerland"@en;
+      rdfs:label ?name;
+      :lengthOfTunnel ?len
+} order by desc(?len)
+```
+Here we use a couple more tricks:
+- `[]` is the `:Tunnel` URI but since it's uninteresting, I write it as a blank node `[]`.
+  This lets me write `select *` and not worry I've missed a variable I add to the query body
+- `:inCountry/skos:prefLabel` is a sequence property path. 
+  It goes across the country node, and examines its label.
+
+> ASIDE: you should use the SPARQL editor autocompletion to your advantage.
+> Eg I typed `:tunnelL` then pressed control-space since I wasn't sure of the spelling.
+> The autocomplete breaks this camelCase word into multiple words and searches for them separately.
+> So it was able to find the correct prop: `:lengthOfTunnel`.
+
+This returns 251 tunnels. Sure, Switzerland is mountainous, but does it have so many tunnels?
+If you examine the result, you find lots of data duplication:
+- Gotthard-Basistunnel (57363m) listed 4 times
+- Simplontunnel (19820) listed 6 times
+- etc
+
+Adding `select distinct *` fixes the problem for this query, though I have an uneasy feeling about it:
+it relies on all selected details of the variant resources to be spelled exactly consistently,
+which is a strong assumption.
+
+### Counting Tunnels
+
+Let's count the number of tunnels per country, their total and average length
+```sparql
+select ?country
+       (count (*) as ?c) 
+       (xsd:integer(sum(?len)) as ?length) 
+       (xsd:integer(sum(?len)/?c) as ?average) {
+    {select distinct * {
+        [] a :Tunnel;
+          :inCountry/skos:prefLabel ?country;
+          rdfs:label ?name;
+          :lengthOfTunnel ?len
+        filter(lang(?country)="en")}}
+} group by ?country order by ?country
+```
+- The inner query does `distinct` over the variables `?country ?name ?length` 
+  to eliminate the duplicates described in the previous section
+- We convert the total and average length to integers, since we don't need multi-digit precision
+
+The result:
+
+| country     |    c |  length | average |
+|-------------|------|---------|---------|
+| Austria     |  191 |  234937 |    1230 |
+| Belgium     |  161 |  103826 |     644 |
+| Bulgaria    |  145 |   36078 |     248 |
+| Croatia     |   52 |   21075 |     405 |
+| Czechia     |  159 |   54855 |     345 |
+| Denmark     |   42 |   36004 |     857 |
+| Finland     |    3 |    8871 |    2957 |
+| France      |  916 |  531719 |     580 |
+| Germany     |  627 |  571451 |     911 |
+| Greece      |  118 |   74599 |     632 |
+| Hungary     |   19 |   11631 |     612 |
+| Italy       | 1609 | 1505113 |     935 |
+| Lithuania   |    1 |    1285 |    1285 |
+| Luxembourg  |   26 |    6221 |     239 |
+| Netherlands |   45 |   74248 |    1649 |
+| Norway      |  466 |  301616 |     647 |
+| Poland      |   37 |   22081 |     596 |
+| Portugal    |   50 |   24020 |     480 |
+| Romania     |   46 |   14357 |     312 |
+| Slovakia    |   47 |   30877 |     656 |
+| Slovenia    |   85 |   37373 |     439 |
+| Spain       | 1930 | 1366144 |     707 |
+| Sweden      |  170 |  146620 |     862 |
+| Switzerland |   42 |  151170 |    3599 |
+
+If you sort by the different columns, you find some interesting facts:
+- Bulgaria has 3.5x more tunnels than Switzerland! That wass hard for me to believe, so I checked.
+- Lithuania has a single tunnel, and Finland has 3. But because they are pretty long,
+  these are amongst the 4 top countries by average tunnel length
+- Spain has 1930 tunnels, totaling 1366 km !
+- Italy has a bit fewer (1606) but is the leader of total tunnel length: 1505 km !
+
 ## Data Stories
 
-TODO
-most of the times using DISTINCT is a mistake
+TODO:
+try some of the [RINF data stories](https://data-interop.era.europa.eu/data-stories) (competency questions) for ERA KG, see [source](https://github.com/Interoperable-data/ERA_vocabulary/tree/main/queries)
