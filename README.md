@@ -114,7 +114,7 @@ It's a complex syntax, and here are the top-level diagrams:
 
 ![](SPARQL-diagram-select.png)
 
-## Making SPARQL Queries
+## Some SPARQL Queries
 
 Ok, let's make some queries!
 Along the way I'll share advice on how to avoid common pitfalls.
@@ -237,9 +237,9 @@ select ?country (group_concat(distinct ?l; separator="; ") as ?labels) {
   } order by ?l}
 } group by ?country 
 ```
+
 We introduce several new mechanisms here:
-- `DISTINCT` eliminates duplicates from a result. You can use it in SELECT, or inside `group_concat()`
-  Here we need it, but most of the times its use is a mistake, see next section
+- `DISTINCT` eliminates duplicates from a result. You can use it in SELECT, or inside `group_concat()`.
 - We use `separator=";"` to more clearly see the different names, because one them includes a space
 - We use `str(?label)` to convert the `langString` to a simple `string` 
   because otherwise the ordering will be first by lang tag, and then by value
@@ -251,3 +251,208 @@ We introduce several new mechanisms here:
 
 > An Rómáin; Errumania; Ir-Rumanija; Pyмъния; Roemenië; Romania; Romanya; Romanía; Romunija; Románia; România; Roménia; Roumanie; Rumania; Rumanía; Rumeenia; Rumenia; Rumunia; Rumunija; Rumunjska; Rumunsko; Rumänien; Rumænien; Rumānija; Rúmenía; Ρουμανία; Романија; Румунија; Румунія; Румыния; Румынія; رومانيا; ルーマニア; 罗马尼亚
 
+### Query Explanation by GPT
+
+You can use `Alt-Ctrl-Enter` (or `Alt-Cmd-Enter` on Mac) in GraphDB workbench to run the query, 
+then explain the query and result using ChatGPT.
+In case you want to access this programmatically,
+the explanation is returned in an extra row of the resultset in a variable `_gpt`.
+
+Below is the explanation from GPT. 
+It is pretty detailed and informative but doesn't explain some finer points,
+e.g. **why** an inner query is needed.
+
+----
+
+The provided SPARQL query retrieves information about the country "Romania" from a dataset that uses the SKOS (Simple Knowledge Organization System) vocabulary. The query performs the following:
+
+1. **Namespace Declaration:** The `PREFIX` line specifies that `skos:` refers to the SKOS namespace, which is used for accessing SKOS properties like `prefLabel`.
+
+2. **Data Selection:**
+   - The query looks for a resource (`?country`) that has a preferred label (`skos:prefLabel`) of "Romania" in English (`"Romania"@en`). It implies that ?label can be any other label in different languages or variations that describe Romania.
+   - The `BIND` function is used to convert these labels to a string and store them in variable `?l`.
+
+3. **Inner Query:** 
+   - An inner query retrieves all possible labels for the country identified as "Romania", ordering them by their string values.
+
+4. **Grouping and Concatenation:**
+   - The outer query groups the results by the `?country` variable and uses `group_concat` to combine all distinct labels into a single string separated by "; ".
+
+5. **Result Explanation:**
+   - The result shows a single row with the `?country` being `<http://publications.europa.eu/resource/authority/country/ROU>`, which is a URI that identifies Romania according to an authority list from the EU.
+   - `?labels` lists all the distinct labels concatenated for Romania, presented in various languages or transliterations. These include, among others, "Romania" in English, "România" in Romanian, and translations/transliterations in languages like German, Spanish, French, Greek, Russian, Japanese, Chinese, etc.
+
+Essentially, the query and result demonstrate how Romania is represented and labeled in different languages and schemas across a multilingual dataset using SKOS concepts."
+
+## Schema Exploration
+
+Given that RDF schemas (ontologies and SHACL shapes) are also represented as RDF,
+it should be no surprise that we can introspect and explore them
+(in this tutorial we work only with ontologies).
+
+### Class Count
+
+This is a "standard" query to count classes by occurrence.
+It is often used as a first step in exploring an unknown repository.
+
+```sparql
+select ?x (count(*) as ?c) {
+    [] a ?x
+} group by ?x order by desc(?c)
+```
+Explanation
+- I often use `?x` as the main thing I'm querying for, and `?c` for a count
+- `[]` is a blank node, which means here "any subject, but I don't care about it"
+- `a` is an abbreviation for `rdf:type`
+
+You may want to write this as a more telling pattern `?resource rdf:type ?class`,
+but for me brevity is a virtue.
+
+We order the results by descending count of instances.
+- The most popular classes are `NetElement, NetRelation, Track` (364k), `TrainDetectionSystem` (184k).
+  - Curiously, the 2 most popular classes are not defined, I have filed a bug.
+- There are 64k `wgs:Point` (simple coordinate pairs), also represented as `geo:Geometry` 
+  (GeoSPARQL WKT representation)
+- There are 34 classes, of which about 24 are domain-oriented (ERA-specific): see next
+- There are 2170 `Concepts` (thesaurus values) in 77 `ConceptSchemes` (thesauri): see further below
+
+### ERA Class Count
+
+Let's count only ERA classes by number of instances.
+There are several ways to do it:
+- by the link `rdfs:isDefinedBy` or by prefix `era:`
+- Through instances or only from the definition of terms as `a owl:Class`
+
+Let's try:
+- By instances and link: 18 classes
+```sparql
+select ?x (count(*) as ?c) {
+    [] a ?x.
+    ?x rdfs:isDefinedBy era:
+} group by ?x order by desc(?c)
+```
+- By instances and namespace: 20 classes (I already mentioned that `NetElement, NetRelation` are not defined).
+  We use the `strstarts()` function to check that the `era:` URI (namespace) is a prefix of the class URI
+```sparql
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+select ?x (count(*) as ?c) {
+    [] a ?x.
+    filter(strstarts(str(?x),str(era:)))
+} group by ?x order by desc(?c)
+```
+- by definition and link: 35 classes.
+```sparql
+select ?x {
+    ?x a owl:Class.
+    ?x rdfs:isDefinedBy era:
+} order by ?x
+```
+- by definition and namespace: 64 classes. This means that:
+  - 29 classes lack the `isDefinedBy` link (TODO: file a bug)
+  - Only 1/3 of all defined classes are used in the data (this is ok, the KG has space to grow after the ontology)
+```sparql
+select ?x {
+    ?x a owl:Class
+    filter(strstarts(str(?x),str(era:)))
+} order by ?x
+```
+
+### Property Count
+This query counts properties by instance:
+```sparql
+select ?x (count(*) as ?c) {
+    [] ?x []
+} group by ?x order by desc(?c)
+```
+- `[] ?x []` means "Find `?x` in property position, but I don't care about the subject or object"
+
+The most populated props are:
+- `era:notApplicable` (6.27M) and `era:notYetAvailable` (5.3M): 
+  this is used to describe for a rail resource, which expected properties are not there, and why
+- `rdf:type` (6.23M): this is approximately the number of instances 
+  (but can exceed it, since a resource may have multiple types)
+
+A total of 320 props are instantiated (populated).
+
+### ERA Property Count
+
+Now let's check how many ERA-specific props are defined and instantiated (populated)
+
+- Defined by link: 469. 
+  - Each prop is defined as datatype or object property, but not both.
+    We use a `values` list to specify these two "kinds":
+```sparql
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX era: <http://data.europa.eu/949/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+select ?x {
+    values ?kind {owl:DatatypeProperty owl:ObjectProperty}
+    ?x a ?kind.
+    ?x rdfs:isDefinedBy era:
+} order by ?x
+```
+- Defined by prefix: 501. This means that 32 props lack the `isDefinedBy` link (TODO: file bug)
+```sparql
+select ?x {
+    values ?kind {owl:DatatypeProperty owl:ObjectProperty}
+    ?x a ?kind.
+    filter(strstarts(str(?x),str(era:)))
+} order by ?x
+```
+- Instantiated by link: 228 props
+  - Here we use a new construct `filter exists`.
+    We first find candidates by `rdfs:isDefinedBy era:` (these are classes and props),
+    then filter to only those that are actually used as props.
+  - It makes the query fast because for each candidate, only one matching `[] ?x []` needs to be examined
+```sparql
+select ?x {
+    ?x rdfs:isDefinedBy era:
+    filter exists {[] ?x []}
+} order by ?x
+```
+- Instantiated by prefix: 235 props
+  - This query takes the longest (38sec) because DISTINCT is an expensive operation:
+    It has to find all results `?x`, put them in memory, sort and compare them to eliminate duplicates
+```sparql
+select distinct ?x {
+    [] ?x []
+    filter(strstarts(str(?x),str(era:)))
+} order by ?x
+```
+
+### Deprecated Terms
+
+Like any large ontology that has evolved for a while, the ERA Vocabulary includes some deprecated terms.
+These are not deleted for existing data, but should not be used for future data, 
+and should be migrated gradually.
+The standard Boolean property `owl:deprecated` is used as such a flag:
+
+```sparql
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+select * where {
+   ?x owl:deprecated true.
+   optional {?x dct:isReplacedBy ?y}
+} order by ?x
+```
+
+ERA has 91 deprecated terms. 
+About 20 of them also point to a new (replacement) term using `dct:isReplacedBy`.
+Note how we use `optional {...}` to also return results that lack that information.
+
+E.g. `era:frenchTrainDetectionSystemLimitation` is replaced by 3 potential terms:
+- `era:frenchTrainDetectionSystemLimitationApplicable`
+- `era:frenchTrainDetectionSystemLimitationNumber`
+- `era:tdsFrenchTrainDetectionSystemLimitation`
+
+This query also returns about 40 obsolete Publication Office country records:
+e.g. `AFI, ANT, ATN, BUR` etc are obsolete.
+
+### SKOS Vocabularies
+TODO
+
+## Data Stories
+
+TODO
+most of the times using DISTINCT is a mistake
