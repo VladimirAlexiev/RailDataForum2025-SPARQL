@@ -1,10 +1,43 @@
 # RailDataForum2025 SPARQL Tutorial
 
+- Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
+ -Last updated: 2025-06-11
+
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+- [RailDataForum2025 SPARQL Tutorial](#raildataforum2025-sparql-tutorial)
+    - [Intro](#intro)
+        - [SPARQL eLearning](#sparql-elearning)
+        - [ERA KG Intro](#era-kg-intro)
+        - [ERAbot](#erabot)
+        - [SPARQL Intro](#sparql-intro)
+    - [Some SPARQL Queries](#some-sparql-queries)
+        - [Longest Tunnel](#longest-tunnel)
+        - [Tunnels in Romania](#tunnels-in-romania)
+        - [Names of Romania](#names-of-romania)
+        - [Collect Names](#collect-names)
+        - [Ordered and Distinct Names](#ordered-and-distinct-names)
+        - [Query Explanation by GPT](#query-explanation-by-gpt)
+    - [Schema Exploration](#schema-exploration)
+        - [Class Count](#class-count)
+        - [ERA Class Count](#era-class-count)
+        - [Property Count](#property-count)
+        - [ERA Property Count](#era-property-count)
+        - [Deprecated Terms](#deprecated-terms)
+        - [SKOS Vocabularies](#skos-vocabularies)
+    - [Complex Queries](#complex-queries)
+        - [Canonical URIs](#canonical-uris)
+        - [Data Duplication](#data-duplication)
+        - [Counting Tunnels](#counting-tunnels)
+    - [Data Stories](#data-stories)
+
+<!-- markdown-toc end -->
+
 ## Intro
 
 [RailDataForum2025](https://www.era.europa.eu/agenda/agenda-rail-data-forum-2025) offers 3 "SPARQL for Beginners" sessions:
 - June 11 9:30-10:30 and June 12 13:30-15:15 (a longer session of 1:45h).
-- This will be led by Vladimir Alexiev, chief data architect of Graphwise/Ontotext.
 - I assume some basic knowledge of the RDF graph model and the Turtle format (serialization),
   since SPARQL patterns are based on the same syntax.
 - You can follow this by a "Practical Data Consumption" session that will be led by Ghislain Atemezing of ERA.
@@ -451,7 +484,144 @@ This query also returns about 40 obsolete Publication Office country records:
 e.g. `AFI, ANT, ATN, BUR` etc are obsolete.
 
 ### SKOS Vocabularies
-TODO
+
+The ERA Vocabulary uses 67 thesauri represented as `skos:ConceptScheme`
+(this query also returns about 10 schemes from the Publications Office countries authority list):
+```sparql
+select * {
+    ?x a skos:ConceptScheme
+} order by ?x
+```
+Thesaurus entries (enumeration values) are represented as `skos:Concept`.
+
+According to SKOS modeling principles, each concept should be in a scheme, and that is indeed satisfied:
+this returns nothing:
+```sparql
+select * {
+    ?x a skos:Concept.
+    filter not exists {?x skos:inScheme ?y}
+}
+```
+
+Some taxonomies have a hierarchical structure represented with `skos:broader`.
+The roots of each hierarchy have a link `skos:topConceptOf` to the scheme. Ther are 2883 such roots:
+```sparql
+select * {
+    ?x skos:topConceptOf ?y
+}
+```
+
+And all of them have the mandatory link `inScheme` (this query returns nothing):
+```sparql
+select * {
+    ?x skos:topConceptOf ?y
+    filter not exists {?x skos:inScheme ?y}
+}
+```
+
+With these preliminary checks, let's count the number of concepts per scheme:
+```sparql
+select ?x (count(*) as ?c) {
+    [] skos:inScheme ?x
+} group by ?x order by ?x
+```
+| x                                                                            |   c |
+|------------------------------------------------------------------------------|-----|
+| concepts/axle-monitoring/AxleBearingMonitoring                               |  25 |
+| concepts/brake-parking-type/BrakeParkingType                                 |   4 |
+| concepts/company-code-categories/CompanyCodeCategories                       |   3 |
+| concepts/compliant-pantograph-heads/CompliantPantographHeads                 |   5 |
+| concepts/contact-line-systems/ContactLineSystems                             |   4 |
+| concepts/contact-strip-materials/ContactStripMaterials                       |  54 |
+| concepts/eddy-current-braking/EddyCurrentBraking                             |   5 |
+| concepts/end-coupling-type/EndCouplingType                                   |  77 |
+| concepts/energy-supply-systems/EnergySupplySystems                           |  36 |
+| concepts/etcs-baselines/ETCSBaselines                                        |   8 |
+| concepts/etcs-equipment-on-board-level/ETCSEquipmentLevels                   |  20 |
+| concepts/etcs-infills/ETCSInfills                                            |   7 |
+| concepts/etcs-levels/ETCSLevels                                              |   6 |
+| concepts/etcs-m-versions/ETCSMVersions                                       |   4 |
+| concepts/etcs-situation/ETCSSituations                                       |   6 |
+| concepts/etcs-system-compatibilities/ETCSSystemCompatibilities               | 149 |
+| concepts/freight-corridor/FreightCorridors                                   |  11 |
+| concepts/gauge-changeover-facilities/GaugeChangeoverFacilities               |  10 |
+| concepts/gaugings/GaugingProfiles                                            | 136 |
+| concepts/gsm-r-equipment-version/GSMREquipmentVersion                        |  41 |
+| concepts/gsm-r-radio-data-communication/GSMRRadioDataCommunications          |  14 |
+| concepts/gsmr-networks/GSMRNetworks                                          |  56 |
+| concepts/gsmr-number-active-mobiles/NumberActiveMobiles                      |   3 |
+| concepts/gsmr-optional-functions/OptionalFunctions                           |  18 |
+| concepts/gsmr-versions/GSMRVersions                                          |  24 |
+| concepts/hot-axle-box-detector-direction/HotAxleBoxDetectorDirections        |   3 |
+| concepts/ice-conditions/IceConditions                                        |  43 |
+| concepts/legacy-radio-systems/LegacyRadioSystems                             | 151 |
+| concepts/line-category/LineCategories                                        |  14 |
+| concepts/load-capabilities/LoadCapabilities                                  | 212 |
+| concepts/load-capability-line-categories/LoadCapabilityLineCategories        |  22 |
+| concepts/magnetic-braking/MagneticBraking                                    |   5 |
+| concepts/max-amount-sandings/MaxAmountSandings                               |   4 |
+| concepts/min-axle-load-vehicle-categories/MinAxleLoadVehicleCategories       |   3 |
+| concepts/min-axle-loads-per-vehicle-category/MinAxleLoadsPerVehicleCategory  |  10 |
+| concepts/navigabilities/Navigabilities                                       |   4 |
+| concepts/nominal-track-gauges/NominalTrackGauges                             |  14 |
+| concepts/op-types/OperationalPointTypes                                      |  15 |
+| concepts/osm-classes/OSMClasses                                              |   8 |
+| concepts/other-pantograph-heads/OtherPantographHeads                         |   9 |
+| concepts/other-protection-control-warning/OtherProtectionControlWarnings     |  48 |
+| concepts/platform-heights/PlatformHeights                                    | 108 |
+| concepts/profile-num-semi-trailers/ProfileNumbersSemiTrailers                |  36 |
+| concepts/profile-num-swap-bodies/ProfileNumbersSwapBodies                    |  36 |
+| concepts/radio-system-compatibilities-data/RadioSystemCompatibilitiesData    |  42 |
+| concepts/radio-system-compatibilities-voice/RadioSystemCompatibilitiesVoice  |  22 |
+| concepts/rail-inclinations/RailInclinations                                  |  24 |
+| concepts/relation-positions/RelationPositions                                |   2 |
+| concepts/restrictions/Restrictions                                           |   7 |
+| concepts/rolling-stock-fire/Categories                                       |   9 |
+| concepts/sol-natures/SoLNatures                                              |   2 |
+| concepts/states/States                                                       |   4 |
+| concepts/temperature-ranges/TemperatureRanges                                |   4 |
+| concepts/ten-classifications/TENClassifications                              |   6 |
+| concepts/thermal-capacity/ThermalCapacityTSIReferences                       |   4 |
+| concepts/track-running-directions/TrackRunningDirections                     |   3 |
+| concepts/train-detection-numbers/FrenchTrainDetectionSystemLimitationNumbers |   8 |
+| concepts/train-detection-specific-checks/TrainDetectionSystemsSpecificChecks |  14 |
+| concepts/train-detection/FrenchTrainDetectionSystemLimitations               |  17 |
+| concepts/train-detection/TrainDetectionSystems                               |   7 |
+| concepts/train-protection-legacy-systems/TrainProtectionLegacySystems        | 160 |
+| concepts/tsi-compliances/TSICompliances                                      |   2 |
+| concepts/tsi-existence-and-compliances/TSIExistenceAndCompliances            |   3 |
+| concepts/type-version-ids/TypeVersionIds                                     |   5 |
+| concepts/vehicle-types/Categories                                            |   4 |
+| concepts/vehicle-types/SubCategories                                         |  15 |
+| http://publications.europa.eu/resource/authority/country                     | 341 |
+
+Note: I've omitted all but one Country-related taxonomy.
+
+Each enumeration property is declared `owl:ObjectProperty` with `rdfs:range skos:Concetp`,
+and the ontology has an extra prop that points to the concept scheme: 
+```sparql
+select * {
+   ?p :inSkosConceptScheme ?s
+} order by ?p
+```
+
+There are 103 such props, which means in a few cases several props share the same concept scheme.
+Let's find them out:
+```sparql
+PREFIX : <http://data.europa.eu/949/>
+select * {
+   ?p :inSkosConceptScheme ?s
+   filter exists {
+     ?p1 :inSkosConceptScheme ?s
+     filter (?p != ?p1)
+   }
+} order by ?s
+```
+
+- All these 4 props use the Countries taxonomy: 
+  `era:authorizedCountry, era:inCountry, era:manufacturingCountry, era:quieterRoutesExemptedCountry`
+- Another example are these 2 props, which both use `concepts/track-running-directions/TrackRunningDirections`:
+  `era:fireSafetyCategory, era:rollingStockFireCategory`
 
 ## Complex Queries
 
