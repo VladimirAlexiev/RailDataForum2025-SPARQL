@@ -1,7 +1,7 @@
 # RailDataForum2025 SPARQL Tutorial
 
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
- -Last updated: 2025-06-11
+- Last updated: 2025-06-11
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
