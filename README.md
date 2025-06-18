@@ -2,6 +2,7 @@
 
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
 - Last updated: 2025-06-18
+- UPDATE: I wrote a blog post [Improving ERA SHACL](improving-era-shacl.md) in this same repository.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -45,8 +46,6 @@
 We will explain the basics of SPARQL, 
 show some queries (competency questions), 
 and an `ERAbot` chatbot that can generate SPARQL.
-
-UPDATE 18-Jun-2025: I wrote a blog post [Improving ERA SHACL](improving-era-shacl.md) in this repository.
 
 ### SPARQL eLearning
 
