@@ -1,7 +1,7 @@
 # RailDataForum2025 SPARQL Tutorial
 
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
-- Last updated: 2025-06-11
+- Last updated: 2025-06-18
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -45,6 +45,8 @@
 We will explain the basics of SPARQL, 
 show some queries (competency questions), 
 and an `ERAbot` chatbot that can generate SPARQL.
+
+UPDATE 18-Jun-2025: I wrote a blog post [Improving ERA SHACL](improving-era-shacl.md) in this repository.
 
 ### SPARQL eLearning
 
@@ -100,7 +102,7 @@ You can learn more by reading the ontology documentation, but mind you it's pret
 http://rail.sandbox.ontotext.com/ttyg is a GraphDB "Talk to Your Graph" chatbot.
 User `rdf2025`, password `Gr@phwise2025`
 - Select `ERAbot` and ask it some questions about the ontology, taxonomies, or instance data.
-- Then use `Explain Resource` to see how the bot came up with an answer, and what query it used.
+- Then use `Explain Response` to see how the bot came up with an answer, and what query it used.
 - You can also click the two buttons on top right of the query to load it in the SPARQL editor, or copy it
 
 ![](ERAbot-longest-tunnel-Europe.png)
@@ -383,7 +385,7 @@ select ?x {
 } order by ?x
 ```
 - by definition and namespace: 64 classes. This means that:
-  - 29 classes lack the `isDefinedBy` link (TODO: file a bug)
+  - 29 classes lack the `isDefinedBy` link (reported as [era-ontology issue 113](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology/-/issues/113))
   - Only 1/3 of all defined classes are used in the data (this is ok, the KG has space to grow after the ontology)
 ```sparql
 select ?x {
@@ -426,7 +428,8 @@ select ?x {
     ?x rdfs:isDefinedBy era:
 } order by ?x
 ```
-- Defined by prefix: 501. This means that 32 props lack the `isDefinedBy` link (TODO: file bug)
+- Defined by prefix: 501. This means that 32 props lack the `isDefinedBy` link 
+  (reported as [era-ontology issue 113](https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/era-ontology/-/issues/113))
 ```sparql
 select ?x {
     values ?kind {owl:DatatypeProperty owl:ObjectProperty}
