@@ -838,11 +838,11 @@ It fetches two pieces of info per `?node`:
     Workbench displays Up to 2 lines, so we put the name (which can be longer) on the first line, and the other two fields on the second line
 
 After you run the visualization, in Settings increase "Maximum links to show" to 200.
-I have [saved a graph view](https://rail.sandbox.ontotext.com/graphs-visualizations?saved=34f6c7d165e44ec38ddbf4f2b2c55a62) for you to try:
+I have [saved a graph view](https://rail.sandbox.ontotext.com/graphs-visualizations?saved=34f6c7d165e44ec38ddbf4f2b2c55a62) for you to try. If you improve the display by dragging nodes, you can save the results for others to see:
 
 ![](vizGraph-Bulgaria.png)
 
-Note: I've left the "Node expansion" query to its default, which selects all neighbors when you click on a node.
+I've left the "Node expansion" query to its default, which selects all neighbors when you click on a node.
 The result is not very good since it shows all kinds of stuff, that the info displayed in these extra nodes is not optimized.
 I leave it as an exercise for the reader to figure out some better graph expansion functionality:
 
