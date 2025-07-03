@@ -1,8 +1,9 @@
 # RailDataForum2025 SPARQL Tutorial
 
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
-- Last updated: 2025-06-18
-- UPDATE: I wrote a blog post [Improving ERA SHACL](improving-era-shacl.md) in this same repository.
+- Last updated: 2025-07-03
+- Update 18-Jun-2025: Wrote blog post [Improving ERA SHACL](improving-era-shacl.md) in this same repository.
+- Update 3-Jul-2025: Added section  [Visual Graph](#visual-graph)
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -31,6 +32,7 @@
         - [Canonical URIs](#canonical-uris)
         - [Data Duplication](#data-duplication)
         - [Counting Tunnels](#counting-tunnels)
+    - [Visual Graph](#visual-graph)
     - [Data Stories](#data-stories)
 
 <!-- markdown-toc end -->
@@ -785,7 +787,69 @@ If you sort by the different columns, you find some interesting facts:
 - Spain has 1930 tunnels, totaling 1366 km !
 - Italy has a bit fewer (1606) but is the leader of total tunnel length: 1505 km !
 
+## Visual Graph
+
+GraphDB can make charts from the result of SELECT queries, and visual graphs from the result of CONSTRUCT queries.
+Let's try the latter to make a graph of Operational Points in Bulgaria.
+I saved it as an "Advanced Graph Configuration" that you can [edit here](https://rail.sandbox.ontotext.com/graphs-visualizations/config/save/8839d5b2864e47a4ad26d74f1f0423a2) (if you have rights) or [run here](https://rail.sandbox.ontotext.com/graphs-visualizations?config=8839d5b2864e47a4ad26d74f1f0423a2).
+
+First we put this CONSTRUCT query in "Starting point> Start with graph query results":
+```sparql
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX : <http://data.europa.eu/949/>
+
+construct {?op1 :connectedTo ?op2}
+where {
+    ?sol a :SectionOfLine; :opStart ?op1c; :opEnd ?op2c; :canonicalURI ?solc.
+    ?op1 a :OperationalPoint ; :canonicalURI ?op1c ;
+      :inCountry <http://publications.europa.eu/resource/authority/country/BGR>.
+    ?op2 a :OperationalPoint ; :canonicalURI ?op2c ;
+      :inCountry <http://publications.europa.eu/resource/authority/country/BGR>.
+}
+```
+- The query looks for Sections of Line (`sol`) that connect Operational Points (`op1, op2`).
+  There are two relations from `sol`: `:opStart, :opEnd`
+- We limit to only `op1, op2` in Bulgaria (`BGR`)
+- Bulgaria doesn't use historical records, so we don't need to do distinct by `:canonicalURI`.
+  Some other countries use them (see [Canonical URIs](#canonical-uris) and [Data Duplication](#data-duplication)) 
+  so you'd need to complicate the query to eliminate duplicate `sol, op1, op2` that relate to the same canonicals.
+  You can use `group by ?solc ?op1c ?op2c` and `sample` to select only one representative from each group.
+- We won't visualize the `sol` as a node (only `op1, op2`) 
+  so we return a synthetic (made-up) relation `connectedTo`
+
+Then we put this SELECT query in "Node basics":
+```sparql
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX : <http://data.europa.eu/949/>
+select * {
+    ?node :opType/skos:prefLabel ?type
+    filter (lang(?type)="en")
+    ?node :opName ?name; :uopid ?id
+    bind(concat(?name,"\n",?type,": ",?id) as ?label)
+}
+```
+It fetches two pieces of info per `?node`:
+- `?type` which is used to color the nodes. 
+  - By default `rdf:type` is used, but all our nodes have the same type `:OperationalPoint` so they all come out the same color.
+  - By using the "business type" `:opType/skos:prefLabel` we get a meaningful type (as string) and different colors.
+- `?label` which is displayed on the node. 
+  - By default it uses `rdfs:label`, which works ok
+  - But we do better by concatenating `?name, ?type, ?id` with proper separators.
+    Workbench displays Up to 2 lines, so we put the name (which can be longer) on the first line, and the other two fields on the second line
+
+After you run the visualization, in Settings increase "Maximum links to show" to 200.
+I have [saved a graph view](https://rail.sandbox.ontotext.com/graphs-visualizations?saved=34f6c7d165e44ec38ddbf4f2b2c55a62) for you to try:
+
+![](vizGraph-Bulgaria.png)
+
+Note: I've left the "Node expansion" query to its default, which selects all neighbors when you click on a node.
+The result is not very good since it shows all kinds of stuff, that the info displayed in these extra nodes is not optimized.
+I leave it as an exercise for the reader to figure out some better graph expansion functionality:
+
+![](vizGraph-Kaspichan.png)
+
 ## Data Stories
 
-TODO:
-try some of the [RINF data stories](https://data-interop.era.europa.eu/data-stories) (competency questions) for ERA KG, see [source](https://github.com/Interoperable-data/ERA_vocabulary/tree/main/queries)
+Try to recreate some of the [RINF data stories](https://data-interop.era.europa.eu/data-stories) (competency questions) for ERA KG, see [source](https://github.com/Interoperable-data/ERA_vocabulary/tree/main/queries).
+
+I leave this as an exercise for the reader.
