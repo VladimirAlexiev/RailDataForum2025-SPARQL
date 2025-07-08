@@ -1,15 +1,18 @@
 # RailDataForum2025 SPARQL Tutorial
 
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
-- Last updated: 2025-07-03
-- Update 18-Jun-2025: Wrote blog post [Improving ERA SHACL](improving-era-shacl.md) in this same repository.
-- Update 3-Jul-2025: Added section  [Visual Graph](#visual-graph)
+- Original location: https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL
+- Mirrored to: https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/rail-data-forum-2025/sparql-for-beginners-masterclass
+- Last updated: 2025-07-08
+  - 18-Jun-2025: Wrote blog post [Improving ERA SHACL](improving-era-shacl.md) in this same repository.
+  - 3-Jul-2025: Added section  [Visual Graph](#visual-graph)
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
 - [RailDataForum2025 SPARQL Tutorial](#raildataforum2025-sparql-tutorial)
     - [Intro](#intro)
+        - [Citation](#citation)
         - [SPARQL eLearning](#sparql-elearning)
         - [ERA KG Intro](#era-kg-intro)
         - [ERAbot](#erabot)
@@ -47,7 +50,37 @@
 
 We will explain the basics of SPARQL, 
 show some queries (competency questions), 
-and an `ERAbot` chatbot that can generate SPARQL.
+an `ERAbot` chatbot that can generate SPARQL,
+and some graph visualizations.
+
+### Citation
+If you use this material, please cite it as:
+```
+@Misc{Alexiev-RailDataForum-SPARQL-2025,
+  author       = {Vladimir Alexiev},
+  title        = {RailDataForum2025: SPARQL Masterclass},
+  howpublished = {Tutorial at RailDataForum2025},
+  month        = jun,
+  year         = 2025,
+  url          = {https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL},
+  keywords     = {rail, ERA, ERA Vocabulary, ERA KG, SPARQL, tutorial, RailDataForum, Talk to Your Graph, TTYG, chatbot, ERAbot},
+  abstract     = {A SPARQL tutorial presented at the RailDataForum2025 masterclass. We present sample queries, schema exploration queries, and link to the ERA Vocabulary "data stories" (competency questions). We also introduce the ERAbot, setup quickly by using GraphDB's "Talk to Your Graph" functionality. Contents: Intro: SPARQL eLearning, ERA KG Intro, ERAbot, SPARQL Intro; Some SPARQL Queries: Longest Tunnel, Tunnels in Romania, Names of Romania, Collect Names, Ordered and Distinct Names, Query Explanation by GPT; Schema Exploration: Class Count, ERA Class Count, Property Count, ERA Property Count, Deprecated Terms, SKOS Vocabularies Complex Queries: Canonical URIs, Data Duplication, Counting Tunnels; Data Stories},
+}
+```
+
+If you like the "Improving ERA SHACL" post, cite it as:
+```
+@Misc{Alexiev-ERA-SHACL-2025,
+  author       = {Vladimir Alexiev},
+  title        = {Improving ERA SHACL},
+  howpublished = {Blog post},
+  month        = jun,
+  year         = 2025,
+  url          = {https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL/blob/main/improving-era-shacl.md},
+  keywords     = {rail, ERA, ERA Vocabulary, ERA KG, SHACL, RDF shapes, data validation, SPARQLConstraint, SPARQLTarget},
+  abstract     = {The ERA KG is the result of a large-scale collaboration between Europe's rail entities and is the foundation of EU rail data interoperability. It is complex and relatively big, and SHACL data validation is used to improve data quality. In this blog we describe Graphwise experience with complex SHACL shapes, show how ERA SHACL shapes can be simplified by a third, how their performance can be optimized (instead of million times, run SPARQL once), and discuss incremental validation scenarios that can further improve performance. In particular, section Constraints for SKOS Properties shows how to replace 73 to 103 enum constraints that run SPARQL over 8M times (per enum prop instance); with 1 constraint that runs SPARQL once (then a few cheap SPARQLs per violation)},
+}
+```
 
 ### SPARQL eLearning
 
