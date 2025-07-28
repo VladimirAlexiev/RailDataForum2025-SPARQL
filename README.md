@@ -3,7 +3,7 @@
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
 - Original location: https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL
 - Mirrored to: https://gitlab.com/era-europa-eu/public/interoperable-data-programme/era-ontology/rail-data-forum-2025/sparql-for-beginners-masterclass
-- Last updated: 2025-07-08
+- Last updated: 2025-07-28
   - 18-Jun-2025: Wrote blog post [Improving ERA SHACL](improving-era-shacl.md) in this same repository.
   - 3-Jul-2025: Added section  [Visual Graph](#visual-graph)
 
@@ -106,7 +106,7 @@ Bob is the author of the famous [Learning SPARQL](https://www.learningsparql.com
   - [SPARQL editor](https://data-interop.era.europa.eu/endpoint): uses YasGUI, has syntax highlighting and autocompleting
   - [SPARQL endpoint](https://data-interop.era.europa.eu/api/sparql): API for posting queries
 - GraphDB
-  - http://rail.sandbox.ontotext.com/sparql : SPARQL editor. User `rdf2025`, password `Gr@phwise2025`
+  - https://rail.sandbox.graphwise.ai/sparql : SPARQL editor. User `rdf2025`, password `Gr@phwise2025`
   - This is slightly older than the Virtuoso endpoint as it uses the ERA KG mentioned next; 
     but it has a chatbot.
 - [ERA KG on Zenodo](https://zenodo.org/records/14605744) (Jan 6, 2025)
@@ -133,7 +133,7 @@ You can learn more by reading the ontology documentation, but mind you it's pret
 
 ### ERAbot
 
-http://rail.sandbox.ontotext.com/ttyg is a GraphDB "Talk to Your Graph" chatbot.
+https://rail.sandbox.graphwise.ai/ttyg is a GraphDB "Talk to Your Graph" chatbot.
 User `rdf2025`, password `Gr@phwise2025`
 - Select `ERAbot` and ask it some questions about the ontology, taxonomies, or instance data.
 - Then use `Explain Response` to see how the bot came up with an answer, and what query it used.
@@ -824,7 +824,7 @@ If you sort by the different columns, you find some interesting facts:
 
 GraphDB can make charts from the result of SELECT queries, and visual graphs from the result of CONSTRUCT queries.
 Let's try the latter to make a graph of Operational Points in Bulgaria.
-I saved it as an "Advanced Graph Configuration" that you can [edit here](https://rail.sandbox.ontotext.com/graphs-visualizations/config/save/8839d5b2864e47a4ad26d74f1f0423a2) (if you have rights) or [run here](https://rail.sandbox.ontotext.com/graphs-visualizations?config=8839d5b2864e47a4ad26d74f1f0423a2).
+I saved it as an "Advanced Graph Configuration" that you can [edit here](https://rail.sandbox.graphwise.ai/graphs-visualizations/config/save/8839d5b2864e47a4ad26d74f1f0423a2) (if you have rights) or [run here](https://rail.sandbox.graphwise.ai/graphs-visualizations?config=8839d5b2864e47a4ad26d74f1f0423a2).
 
 First we put this CONSTRUCT query in "Starting point> Start with graph query results":
 ```sparql
@@ -871,7 +871,7 @@ It fetches two pieces of info per `?node`:
     Workbench displays Up to 2 lines, so we put the name (which can be longer) on the first line, and the other two fields on the second line
 
 After you run the visualization, in Settings increase "Maximum links to show" to 200.
-I have [saved a graph view](https://rail.sandbox.ontotext.com/graphs-visualizations?saved=34f6c7d165e44ec38ddbf4f2b2c55a62) for you to try. If you improve the display by dragging nodes, you can save the results for others to see:
+I have [saved a graph view](https://rail.sandbox.graphwise.ai/graphs-visualizations?saved=34f6c7d165e44ec38ddbf4f2b2c55a62) for you to try. If you improve the display by dragging nodes, you can save the results for others to see:
 
 ![](vizGraph-Bulgaria.png)
 
