@@ -1,7 +1,7 @@
 ﻿# Improving ERA SHACL Shapes and Data Flows
 
 - Author: Vladimir Alexiev, chief data architect of Graphwise/Ontotext
-- Date: 2025-06-18
+- Date: 2025-08-20
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -60,7 +60,7 @@ leaving the heavy lifting to `SPARQLTarget` (a query that is run few times)
 and simplifying `SPARQLConstraint` (that is run very many times).
 
 [6] describes a SHACL performance and conformance benchmark based on ERA SHACL shapes
-that has tested the following engines: `dotnet_rdf, jena, maplib, pyshacl, rdf4j, topbraid, corese, rdfunit`.
+that has tested the following engines:  `dotnet_rdf, jena, maplib, pyshacl, rdf4j, topbraid, corese, rdfunit`.
 - [7] describes some problems with the setup of rdf4j.
 
 ## ERA SHACL Stats
@@ -236,14 +236,19 @@ era-sh:NoRepeatedTrackIdsSoL a sh:NodeShape;
 ```
 
 Notes:
+
 - You may notice we used `distinct` in the target query but no `distinct` in the constraint query.
   The reason is that the same `$this` may have several track pairs in violation, and we want to report all of them.
   While `distinct` is an expensive operation, the set of violating nodes is expected to be small, so it's ok to use it.
 - Depending on how the validation engine populates `sh:message`,
   it may need to be moved into the `SPARQLConstraint`
-- Nominally, `SPARQLTarget` is part of SHACL Advanced while `SPARQLConstraint` is part of SHACL basic.
+- Nominally, [SPARQLTarget](https://www.w3.org/TR/shacl-af/#h-sparqltarget) is part of SHACL Advanced while [SPARQLConstraint](https://www.w3.org/TR/shacl/#example-sparql-constraint) is part of SHACL basic.
   However, all validation engines that implement the one SPARQL feature are also likely to implement the other,
   so there is little harm in using SPARQL targeting.
+  - For example, out of the engines tested by [6]
+    `jena, maplib, pyshacl, rdf4j, topbraid` support `SPARQLTarget` [9],
+    `corese, rdfunit` are no longer being maintained,
+    and I've posted an issue [10] for `dotnet_rdf` to implement this feature.
 
 ## Constraints for SKOS Properties
 
@@ -326,7 +331,6 @@ select * {
 We can replace all these 73 or 103 constraints with **one** generalized constrant:
 ```ttl
 era-sh:InSkosConceptScheme a sh:NodeShape;
-  a sh:SPARQLConstraint ;
   sh:severity sh:Violation ;
   sh:message "Instance {$this} of class {?class} has enumerated property {?property} with value {?value} that is not in the list {?scheme}."@en ;
   sh:target [a sh:SPARQLTarget;
@@ -527,7 +531,11 @@ but cannot take a data transaction (set of deleted and inserted triples), so it'
    ERA-SHACL-Benchmark: A real data SHACL performance and reporting quality benchmark for in-memory SHACL engines.
    ISWC 2025 Resource track (submitted), June 2025.
 7. Havard Ottestad, Vladimir Alexiev.
-   [Use correct rdf4j setup; ERA-SHACL-Benchmark issue 4](https://github.com/alexisimo/ERA-SHACL-Benchmark/issues/4).
+   [Use correct rdf4j setup; ERA-SHACL-Benchmark#4](https://github.com/alexisimo/ERA-SHACL-Benchmark/issues/4).
    Github issue, June 2025.
 8. Vladimir Alexiev. [RailDataForum2025 SPARQL Tutorial](https://github.com/VladimirAlexiev/RailDataForum2025-SPARQL#readme).
    Github project, June 2025.
+9. Vladimir Alexiev. [Which engines support SPARQLTarget? ERA-SHACL-Benchmark#6](https://github.com/alexisimo/ERA-SHACL-Benchmark/issues/6).
+   Github issue, June 2025.
+10. Vladimir Alexiev. [SHACL: implement SHACLTarget dotnetrdf#726](https://github.com/dotnetrdf/dotnetrdf/issues/726)
+    Github issue, June 2025.
